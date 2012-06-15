@@ -7,6 +7,8 @@ namespace EasyLog
 {
     public interface ILogWriter
     {
-        ILogFormatter CustomFormatter { get; set; }
+        void Write(string line);
+
+        IEnumerable<string> ReadLines();
     }
 }
