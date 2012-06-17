@@ -136,6 +136,127 @@ namespace EasyLog
         #endregion
 
         #region Conditional Log Writer Methods
+
+        public void DebugIf(string message, bool condition)
+        {
+            if (condition)
+                Debug(message);
+        }
+
+        public void DebugIf(string message, bool condition, object arg)
+        {
+            if (condition)
+                Debug(message, arg);
+        }
+
+        public void DebugIf(string message, bool condition, object arg1, object arg2)
+        {
+            if (condition)
+                Debug(message, arg1, arg2);
+        }
+
+        public void DebugIf(string message, bool condition, params object[] args)
+        {
+            if (condition)
+                Debug(message, args);
+        }
+
+        public void InfoIf(string message, bool condition)
+        {
+            if (condition)
+                Info(message);
+        }
+
+        public void InfoIf(string message, bool condition, object arg)
+        {
+            if (condition)
+                Info(message, arg);
+        }
+
+        public void InfoIf(string message, bool condition, object arg1, object arg2)
+        {
+            if (condition)
+                Info(message, arg1, arg2);
+        }
+
+        public void InfoIf(string message, bool condition, params object[] args)
+        {
+            if (condition)
+                Info(message, args);
+        }
+
+        public void WarnIf(string message, bool condition)
+        {
+            if (condition)
+                Warn(message);
+        }
+
+        public void WarnIf(string message, bool condition, object arg)
+        {
+            if (condition)
+                Warn(message, arg);
+        }
+
+        public void WarnIf(string message, bool condition, object arg1, object arg2)
+        {
+            if (condition)
+                Warn(message, arg1, arg2);
+        }
+
+        public void WarnIf(string message, bool condition, params object[] args)
+        {
+            if (condition)
+                Warn(message, args);
+        }
+
+        public void ErrorIf(string message, bool condition)
+        {
+            if (condition)
+                Error(message);
+        }
+
+        public void ErrorIf(string message, bool condition, object arg)
+        {
+            if (condition)
+                Error(message, arg);
+        }
+
+        public void ErrorIf(string message, bool condition, object arg1, object arg2)
+        {
+            if (condition)
+                Error(message, arg1, arg2);
+        }
+
+        public void ErrorIf(string message, bool condition, params object[] args)
+        {
+            if (condition)
+                Error(message, args);
+        }
+
+        public void CriticalIf(string message, bool condition)
+        {
+            if (condition)
+                Critical(message);
+        }
+
+        public void CriticalIf(string message, bool condition, object arg)
+        {
+            if (condition)
+                Critical(message, arg);
+        }
+
+        public void CriticalIf(string message, bool condition, object arg1, object arg2)
+        {
+            if (condition)
+                Critical(message, arg1, arg2);
+        }
+
+        public void CriticalIf(string message, bool condition, params object[] args)
+        {
+            if (condition)
+                Critical(message, args);
+        }
+
         #endregion
 
         internal LogClient(Log log, string name)

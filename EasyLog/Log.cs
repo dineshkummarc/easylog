@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -8,6 +9,13 @@ namespace EasyLog
 {
     public class Log
     {
+        /// <summary>
+        /// Implements a collection of log writers
+        /// </summary>
+        public sealed class LogWriterCollection : Collection<ILogWriter>
+        {
+        }
+
         /// <summary>
         /// A log severity level
         /// </summary>
@@ -49,10 +57,8 @@ namespace EasyLog
         /// </summary>
         public const int DefaultMaxQueuedItems = 10;
 
-        List<ILogWriter> writers;
-        List<LogClient> clients;
-
-        ConcurrentQueue<Tuple<LogClient, DateTime, Level, string>> queuedWrites;
+        readonly List<LogClient> clients;
+        readonly ConcurrentQueue<Tuple<LogClient, DateTime, Level, string>> queuedWrites;
 
         /// <summary>
         /// Gets or sets the log <see cref="Level"/>
@@ -69,11 +75,35 @@ namespace EasyLog
         /// </summary>
         public int MaxQueuedItems { get; set; }
 
+        /// <summary>
+        /// The log writers connected to this log
+        /// </summary>
+        public LogWriterCollection Writers { get; private set; }
+
         IEnumerable<Tuple<LogClient, DateTime, Level, string>> Consume()
         {
             Tuple<LogClient, DateTime, Level, string> result;
             while (queuedWrites.TryDequeue(out result))
                 yield return result;
+        }
+
+        void WriteQueuedLines()
+        {
+            lock (Writers)
+            {
+                Func<Tuple<LogClient, DateTime, Level, string>, string> Format = (tuple) =>
+                {
+                    if (!String.IsNullOrWhiteSpace(tuple.Item1.Name))
+                        return String.Join(" - ", tuple.Item2, tuple.Item1.Name, tuple.Item3, tuple.Item4);
+                    else
+                        return String.Join(" - ", tuple.Item2, tuple.Item3, tuple.Item4);
+                };
+
+                var lines = from queuedLine in Consume()
+                            select Format(queuedLine);
+                foreach (var writer in Writers)
+                    writer.Write(lines);
+            }
         }
 
         /// <summary>
@@ -88,23 +118,17 @@ namespace EasyLog
             {
                 Task.Factory.StartNew(() =>
                 {
-                    lock (writers)
-                    {
-                        Func<Tuple<LogClient, DateTime, Level, string>, string> Format = (tuple) =>
-                        {
-                            if (!String.IsNullOrWhiteSpace(tuple.Item1.Name))
-                                return String.Join(" - ", tuple.Item2, tuple.Item1.Name, tuple.Item3, tuple.Item4);
-                            else
-                                return String.Join(" - ", tuple.Item2, tuple.Item3, tuple.Item4);
-                        };
-
-                        var lines = from queuedLine in Consume()
-                                    select Format(queuedLine);
-                        foreach (var writer in writers)
-                            writer.Write(lines);
-                    }
+                    WriteQueuedLines();
                 });
             }
+        }
+
+        /// <summary>
+        /// Immediately empty the log queue and write back all queued lines
+        /// </summary>
+        public void Flush()
+        {
+            WriteQueuedLines();
         }
 
         /// <summary>
@@ -141,23 +165,11 @@ namespace EasyLog
         }
 
         /// <summary>
-        /// Add a backend to the log
-        /// </summary>
-        /// <param name="writer">The log writer to add</param>
-        public void AddBackend(ILogWriter writer)
-        {
-            if (writer == null)
-                throw new ArgumentNullException("backend", "The given log writer must not be null.");
-
-            writers.Add(writer);
-        }
-
-        /// <summary>
         /// Constructs a new Log.
         /// </summary>
         public Log()
         {
-            writers = new List<ILogWriter>();
+            Writers = new LogWriterCollection();
             clients = new List<LogClient>();
             queuedWrites = new ConcurrentQueue<Tuple<LogClient, DateTime, Level, string>>();
             MaxQueuedItems = DefaultMaxQueuedItems;
