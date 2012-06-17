@@ -1,14 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.Generic;
 
 namespace EasyLog
 {
+    /// <summary>
+    /// Defines an interface for log writers
+    /// </summary>
     public interface ILogWriter
     {
-        void Write(string line);
-
-        IEnumerable<string> ReadLines();
+        void Write(IEnumerable<string> line);
     }
 }

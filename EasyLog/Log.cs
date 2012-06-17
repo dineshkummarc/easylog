@@ -1,7 +1,8 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Threading.Tasks;
 
 namespace EasyLog
 {
@@ -15,36 +16,43 @@ namespace EasyLog
             /// <summary>
             /// No log level
             /// </summary>
-            None,
+            None = 0,
 
             /// <summary>
             /// Debug information
             /// </summary>
-            Debug,
+            Debug = 1,
 
             /// <summary>
             /// Information
             /// </summary>
-            Info,
+            Info = 2,
 
             /// <summary>
             /// Warnings
             /// </summary>
-            Warning,
+            Warning = 3,
 
             /// <summary>
             /// Errors
             /// </summary>
-            Error,
+            Error = 4,
 
             /// <summary>
             /// Critical errors
             /// </summary>
-            Critical,
+            Critical = 5,
         }
+
+        /// <summary>
+        /// The default value for <see cref="MaxQueuedItems"/>
+        /// </summary>
+        public const int DefaultMaxQueuedItems = 10;
 
         List<ILogWriter> writers;
         List<LogClient> clients;
+
+        ConcurrentQueue<Tuple<LogClient, DateTime, Level, string>> queuedWrites;
 
         /// <summary>
         /// Gets or sets the log <see cref="Level"/>
@@ -57,11 +65,46 @@ namespace EasyLog
         public Level LogLevel { get; set; }
 
         /// <summary>
+        /// The threshold after which the log queue will be cleared.
+        /// </summary>
+        public int MaxQueuedItems { get; set; }
+
+        IEnumerable<Tuple<LogClient, DateTime, Level, string>> Consume()
+        {
+            Tuple<LogClient, DateTime, Level, string> result;
+            while (queuedWrites.TryDequeue(out result))
+                yield return result;
+        }
+
+        /// <summary>
         /// Queues a log write from a client
         /// </summary>
-        internal void QueueWrite()
+        internal void QueueWrite(LogClient client, Level level, string line)
         {
-            throw new NotImplementedException();
+            if ((int)level >= (int)LogLevel)
+                queuedWrites.Enqueue(Tuple.Create(client, DateTime.Now, level, line));
+
+            if (queuedWrites.Count > MaxQueuedItems)
+            {
+                Task.Factory.StartNew(() =>
+                {
+                    lock (writers)
+                    {
+                        Func<Tuple<LogClient, DateTime, Level, string>, string> Format = (tuple) =>
+                        {
+                            if (!String.IsNullOrWhiteSpace(tuple.Item1.Name))
+                                return String.Join(" - ", tuple.Item2, tuple.Item1.Name, tuple.Item3, tuple.Item4);
+                            else
+                                return String.Join(" - ", tuple.Item2, tuple.Item3, tuple.Item4);
+                        };
+
+                        var lines = from queuedLine in Consume()
+                                    select Format(queuedLine);
+                        foreach (var writer in writers)
+                            writer.Write(lines);
+                    }
+                });
+            }
         }
 
         /// <summary>
@@ -83,8 +126,8 @@ namespace EasyLog
         /// <returns>Returns the log client</returns>
         public LogClient GetClient(string name)
         {
-            if (name == null)
-                return GetDefaultClient();
+            if (String.IsNullOrWhiteSpace(name))
+                name = string.Empty;
 
             var index = clients.FindIndex((n) => n.Name == name);
             if (index >= 0)
@@ -109,22 +152,15 @@ namespace EasyLog
             writers.Add(writer);
         }
 
+        /// <summary>
+        /// Constructs a new Log.
+        /// </summary>
         public Log()
         {
             writers = new List<ILogWriter>();
             clients = new List<LogClient>();
-        }
-
-        public Log(IEnumerable<ILogWriter> writers)
-            : this()
-        {
-            foreach(var writer in writers)
-                AddBackend(writer);
-        }
-
-        public Log(params ILogWriter[] writers)
-            : this(writers as IEnumerable<ILogWriter>)
-        {
+            queuedWrites = new ConcurrentQueue<Tuple<LogClient, DateTime, Level, string>>();
+            MaxQueuedItems = DefaultMaxQueuedItems;
         }
     }
 }
