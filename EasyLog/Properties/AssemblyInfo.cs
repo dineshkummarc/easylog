@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 
 [assembly: AssemblyTitle("EasyLog")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("A minimalistic logging library for .NET")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("EasyLog")]
