@@ -7,6 +7,18 @@ using System.Threading.Tasks;
 
 namespace EasyLog
 {
+    /// <summary>
+    /// Implements logging facilities.
+    /// </summary>
+    /// <remarks>
+    /// This logging library is built around the idea of multiple writers and multiple backends.
+    /// A single can can be written to from several <see cref="LogClient"/>s and it can have
+    /// multiple backends in the form of log writers (<see cref="ILogWriter"/>).
+    /// 
+    /// To write to the log, create a <see cref="LogClient"/>, 
+    /// either a named one with <see cref="Log.GetClient"/> 
+    /// or the default one with <see cref="Log.GetDefaultClient"/>.
+    /// </remarks>
     public class Log
     {
         /// <summary>

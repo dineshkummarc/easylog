@@ -8,6 +8,10 @@ namespace EasyLog.Writers
     /// </summary>
     public class DebugWriter : ILogWriter
     {
+        /// <summary>
+        /// Writes the given lines to the Debug console
+        /// </summary>
+        /// <param name="lines"></param>
         public void Write(IEnumerable<string> lines)
         {
             foreach (var line in lines)
